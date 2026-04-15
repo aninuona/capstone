@@ -92,6 +92,35 @@ def create_app(env: str = None) -> Flask:
  
     return app
 
+# HOME PAGE
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# STUDENT - DECODER PAGE
+@app.route('/decoder')
+def decoder_page():
+    # empty values initially so the boxes show '--'
+    return render_template('decoder.html', t_tier=None, c_level=None, e_level=None)
+
+# FACULTY - BUILDER PAGE
+@app.route('/builder')
+def builder_page():
+    # get questions from SQL to display them
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM builder_questions")
+    questions = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('buildsyllabus.html', questions=questions)
+
+# TRAINING GAME
+@app.route('/game')
+def game_page():
+    # get a random policy fragment for the quiz
+    return render_template('traininggame.html')
+
 # FACULTY - POLICY BUILDER
 @app.route('/build-policy', methods=['POST'])
 def build_policy():
