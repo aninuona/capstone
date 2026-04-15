@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Syllabus Decoder | Policy Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="main-nav">
+    <div class="logo"><a href="index.html">Syllabus Decoder</a></div>
+  </nav>
+
+  <main class="builder-container">
+    <h1>Build Your AI Policy</h1>
+
+    <form action="/submit-policy" method="POST" class="question-form">
+        {% for q in questions %}
+        <div class="question-block">
+            <h3>{{ q[1] }}</h3>
+            
+            <div class="options-container">
+                <label class="option-label">
+                    <input type="radio" name="q_{{ q[0] }}" value="{{ q[3] }}" checked>
+                    <span class="option-text">{{ q[2] }}</span>
+                </label>
+
+                <label class="option-label">
+                    <input type="radio" name="q_{{ q[0] }}" value="{{ q[5] }}">
+                    <span class="option-text">{{ q[4] }}</span>
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn-primary">Generate & Save Policy</button>
+    </form>
+  </main>
+
+</body>
+</html>
