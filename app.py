@@ -155,3 +155,8 @@ def build_policy():
         "tier": tier,
         "text": generated_text
     })
+
+# ADMIN PAGE
+@app.route('/admin')
+def index():
+    return render_template('admin.html')
