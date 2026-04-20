@@ -18,9 +18,9 @@ def stats():
     if denied: return denied
 
     return jsonify({
-        "entries":   SyllabusEntry.query.count(),
+        "entries":   PolicyEntry.query.count(),
         "users":     User.query.count(),
-        "policies":  Policy.query.count(),
+        "policies":  PolicyGenerated.query.count(),
         "fragments": PolicyFragment.query.count(),
     }), 200
 
@@ -31,7 +31,7 @@ def list_entries():
     denied = require_admin()
     if denied: return denied
 
-    entries = SyllabusEntry.query.order_by(SyllabusEntry.created_at.desc()).all()
+    entries = PolicyEntry.query.order_by(PolicyEntry.created_at.desc()).all()
     return jsonify([e.to_dict() for e in entries]), 200
 
 
@@ -42,7 +42,7 @@ def add_entry():
     if denied: return denied
 
     data  = request.get_json()
-    entry = SyllabusEntry(
+    entry = PolicyEntry(
         institution    = data.get("institution", "").strip(),
         department     = data.get("department", "").strip(),
         policy_text    = data.get("policy_text", "").strip(),
@@ -62,7 +62,7 @@ def update_entry(entry_id):
     denied = require_admin()
     if denied: return denied
 
-    entry = SyllabusEntry.query.get(entry_id)
+    entry = PolicyEntry.query.get(entry_id)
     if not entry:
         return jsonify({"error": "Entry not found."}), 404
 
@@ -84,7 +84,7 @@ def update_status(entry_id):
     denied = require_admin()
     if denied: return denied
 
-    entry = SyllabusEntry.query.get(entry_id)
+    entry = PolicyEntry.query.get(entry_id)
     if not entry:
         return jsonify({"error": "Entry not found."}), 404
 
