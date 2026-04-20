@@ -5,7 +5,7 @@ class DevelopmentConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-before-deploying")
 
     #
-    QLALCHEMY_DATABASE_URI = "sqlite:///syllabus_decoder.db"
+    QLALCHEMY_DATABASE_URI = "sqlite:///syllabus.db"
 
     # Disable modification tracking to save memory
     SQLALCHEMY_TRACK_MODIFICATIONS = False
