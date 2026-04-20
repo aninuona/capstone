@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syllabus Decoder | Admin Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-2xl);
+      padding: var(--space-12) var(--space-10);
+      box-shadow: var(--shadow-lg);
+    }
+    .login-card__brand {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--blue);
+      margin-bottom: var(--space-8);
+      display: block;
+    }
+    .login-card h1 {
+      font-size: 1.75rem;
+      margin-bottom: var(--space-2);
+    }
+    .login-card .subtitle {
+      color: var(--ink-4);
+      font-size: 0.875rem;
+      margin-bottom: var(--space-8);
+      max-width: none;
+    }
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+    .error-msg {
+      display: none;
+    }
+    .error-msg.visible {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrap">
+    <div class="login-card fade-up">
+
+      <span class="login-card__brand">Syllabus Decoder</span>
+
+      <h1>Admin <span class="accent">Access</span></h1>
+      <p class="subtitle">This area is restricted to authorized administrators only.</p>
+
+      {% if error %}
+      <div class="alert alert--error mb-6">{{ error }}</div>
+      {% endif %}
+
+      <div id="js-error" class="alert alert--error mb-6 error-msg"></div>
+
+      <form class="form-stack" id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-input" type="email" id="email" name="email" placeholder="admin@example.edu" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--full" id="submit-btn">
+          Sign In
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    // Submit form via fetch 
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const btn      = document.getElementById('submit-btn');
+      const errBox   = document.getElementById('js-error');
+      const email    = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      btn.disabled    = true;
+      btn.textContent = 'Signing in…';
+      errBox.classList.remove('visible');
+
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method:      'POST',
+          headers:     { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body:        JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errBox.textContent = data.error || 'Login failed.';
+          errBox.classList.add('visible');
+          btn.disabled    = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+
+        // Only admins get in, redirect everyone else
+        if (data.role !== 'admin') {
+          errBox.textContent = 'Your account does not have admin access.';
+          errBox.classList.add('visible');
+          btn.disabled    = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+
+        window.location.href = '/admin';
+
+      } catch (err) {
+        errBox.textContent = 'Could not connect to server. Try again.';
+        errBox.classList.add('visible');
+        btn.disabled    = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+
+</body>
+</html>
