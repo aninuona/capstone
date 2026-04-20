@@ -1,52 +1,70 @@
-from flask import Blueprint, jsonify, request, session
-from models import db, Policy, BuilderQuestion
+from flask import Blueprint, jsonify, request
+from models import db, Policy
 
 builder_bp = Blueprint("builder", __name__)
 
 
-@builder_bp.route("/questions", methods=["GET"])
-def get_questions():
-    # a Returns all builder questions as JSON for the frontend form
-    questions = BuilderQuestion.query.all()
-    result = [
-        {
-            "id":       q.id,
-            "question": q.question,
-            "option_a": q.option_a,
-            "value_a":  q.value_a,
-            "option_b": q.option_b,
-            "value_b":  q.value_b,
-        }
-        for q in questions
-    ]
-    return jsonify(result), 200
+# Tier mapping based on faculty answers
+# Each question narrows down the tier, compliance, and enforcement levels
+TIER_MAP = {
+    "Minimal Intervention": ("T0", "C0", "E2",
+        "The use of generative AI tools is prohibited in this course. "
+        "All submitted work must be your own. Violations will be treated as academic dishonesty."),
+
+    "Discouragement":       ("T1", "C0", "E1",
+        "Students are strongly discouraged from using generative AI in this course. "
+        "If used, it must be disclosed, though there is no formal penalty structure."),
+
+    "Ask Permission":       ("T2", "C1", "E1",
+        "Use of generative AI requires prior instructor approval. "
+        "Students must note any AI use on submitted work."),
+
+    "Bounded Use":          ("T3", "C2", "E2",
+        "Generative AI may be used for brainstorming, outlining, and editing only. "
+        "Students must describe how AI was used in a brief disclosure statement. "
+        "Submitting AI-generated text as your own work is prohibited and will result in academic consequences."),
+
+    "With Documentation":   ("T4", "C3", "E2",
+        "Generative AI is permitted with full documentation. "
+        "Students must provide a log of all prompts used and explain how AI output was modified. "
+        "Undisclosed AI use is a violation of academic integrity policy."),
+
+    "Open Use":             ("T5", "C1", "E0",
+        "Generative AI tools are permitted and encouraged in this course as part of learning. "
+        "Students should note when AI is used but there is no formal restriction on how or when."),
+}
 
 
-@builder_bp.route("/policies", methods=["GET"])
-def get_policies():
-    # b Returns all saved policies, most recent first
-    policies = Policy.query.order_by(Policy.created_at.desc()).all()
-    result = [
-        {
-            "id":            p.id,
-            "course_name":   p.course_name,
-            "policy_text":   p.policy_text,
-            "tier_id":       p.tier_id,
-            "compliance_id": p.compliance_id,
-            "created_at":    str(p.created_at),
-        }
-        for p in policies
-    ]
-    return jsonify(result), 200
+@builder_bp.route("/generate", methods=["POST"])
+def generate_policy():
+    # Receives faculty quiz answers and returns a generated policy text fragment
+    data       = request.get_json()
+    philosophy = data.get("philosophy", "").strip()
+    course     = data.get("course_name", "this course").strip()
 
+    if philosophy not in TIER_MAP:
+        return jsonify({"error": "Invalid answer selection."}), 400
 
-@builder_bp.route("/policies/<int:policy_id>", methods=["DELETE"])
-def delete_policy(policy_id):
-    # c Deletes a single policy by its ID, admin or faculty only
-    policy = Policy.query.get(policy_id)
-    if not policy:
-        return jsonify({"error": "Policy not found."}), 404
+    tier, compliance, enforcement, template = TIER_MAP[philosophy]
 
-    db.session.delete(policy)
+    # Personalize the text with the course name if provided
+    policy_text = template.replace("this course", course) if course else template
+
+    '''
+    # Save to the database so admin can see all generated policies
+    new_policy = Policy(
+        course_name   = course,
+        policy_text   = policy_text,
+        tier_id       = tier,
+        compliance_id = compliance,
+    )
+    db.session.add(new_policy)
     db.session.commit()
-    return jsonify({"message": "Policy deleted."}), 200
+    '''
+
+    return jsonify({
+        "policy_text":    policy_text,
+        "tier_id":        tier,
+        "compliance_id":  compliance,
+        "enforcement_id": enforcement,
+    }), 200
