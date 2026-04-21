@@ -1,162 +1,209 @@
 import os
 import sys
-from flask import Flask, jsonify, send_from_directory
+import random
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
- 
+
 sys.path.insert(0, os.path.dirname(__file__))
- 
+
 from config import config
 from models import db
 
-# create & authorize Flask app
+
 def create_app(env: str = None) -> Flask:
     env = env or os.environ.get("FLASK_ENV", "development")
- 
-    frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
- 
-    app = Flask(
-        __name__,
-        static_folder=frontend_dir,
-        static_url_path="",
-    )
- 
+
+    # Flask auto-finds /templates and /static when no custom folders are given
+    app = Flask(__name__)
     app.config.from_object(config[env])
- 
+
     CORS(app, supports_credentials=True, origins=[
         "http://localhost:5000",
         "http://127.0.0.1:5000",
         "http://localhost:5173",
     ])
- 
+
     db.init_app(app)
 
+    # Register API blueprints
     from routes.auth    import auth_bp
     from routes.decoder import decoder_bp
     from routes.builder import builder_bp
     from routes.game    import game_bp
     from routes.admin   import admin_bp
 
-    # blueprint files
     app.register_blueprint(auth_bp,    url_prefix="/api/auth")
     app.register_blueprint(decoder_bp, url_prefix="/api/decoder")
     app.register_blueprint(builder_bp, url_prefix="/api/builder")
     app.register_blueprint(game_bp,    url_prefix="/api/game")
     app.register_blueprint(admin_bp,   url_prefix="/api/admin")
- 
+
+    # Page routes
+
     @app.route("/")
     def home():
-        return send_from_directory(app.static_folder, "index.html")
+        return render_template("index.html")
 
-    #static pages
-    pages = {
-        "/decoder":       "decoder.html",
-        "/buildsyllabus": "buildsyllabus.html",
-        "/traininggame":  "traininggame.html",
-        "/admin":         "admin.html",
-        "/login":         "login.html",
-        "/dashboard":     "dashboard.html",
-    }
- 
-    def make_page_view(filename):
-        def view():
-            return send_from_directory(app.static_folder, filename)
-        return view
- 
-    for path, filename in pages.items():
-        app.add_url_rule(
-            path,
-            endpoint=filename.replace(".html", ""),
-            view_func=make_page_view(filename),
+    @app.route("/decoder", methods=["GET"])
+    def decoder_page():
+        #Empty on first load
+        return render_template("decoder.html", t_tier=None, c_level=None, e_level=None, pasted_text="")
+
+    @app.route("/decode", methods=["POST"])
+    def decode():
+        # Calls the classifier in routes/decoder.py and renders results
+        from routes.decoder import classify_policy
+
+        syllabus_text = request.form.get("syllabus_text", "").strip()
+
+        if not syllabus_text:
+            return render_template("decoder.html", t_tier=None, c_level=None, e_level=None,
+                                   pasted_text="", error="Please paste some policy text first.")
+
+        result = classify_policy(syllabus_text)
+
+        return render_template(
+            "decoder.html",
+            pasted_text = syllabus_text,
+            t_tier      = result["t_tier"],
+            c_level     = result["c_level"],
+            e_level     = result["e_level"],
         )
 
-    #error handling
+    @app.route("/buildsyllabus", methods=["GET"])
+    def builder_page():
+        # Loads builder questions from DB and renders the quiz form
+        from models import BuilderQuestion
+        questions = BuilderQuestion.query.all()
+        return render_template("build_syllabus.html", questions=questions)
+
+    @app.route("/submit-policy", methods=["POST"])
+    def submit_policy():
+        #Passes form answers to the builder route logic and renders the result
+        from routes.builder import TIER_MAP
+        from models import BuilderQuestion, Policy
+
+        philosophy  = request.form.get("philosophy", "").strip()
+        course_name = request.form.get("course_name", "this course").strip()
+        questions   = BuilderQuestion.query.all()
+
+        if philosophy not in TIER_MAP:
+            return render_template("build_syllabus.html", questions=questions,
+                                   error="Please select an option before submitting.")
+
+        tier, compliance, enforcement, template = TIER_MAP[philosophy]
+        policy_text = template.replace("this course", course_name) if course_name else template
+
+        new_policy = Policy(
+            course_name   = course_name,
+            policy_text   = policy_text,
+            tier_id       = tier,
+            compliance_id = compliance,
+        )
+        db.session.add(new_policy)
+        db.session.commit()
+
+        return render_template(
+            "build_syllabus.html",
+            questions      = questions,
+            generated_text = policy_text,
+            tier           = tier,
+            compliance     = compliance,
+            enforcement    = enforcement,
+        )
+
+    @app.route("/traininggame", methods=["GET"])
+    def game_page():
+        # Picks a random syllabus entry for the quiz
+        from models import SyllabusEntry
+
+        entry = None
+        try:
+            count = SyllabusEntry.query.filter_by(status="verified").count()
+            if count > 0:
+                entry = SyllabusEntry.query.filter_by(status="verified") \
+                                           .offset(random.randint(0, count - 1)) \
+                                           .first()
+        except Exception:
+            pass
+
+        return render_template(
+            "training_game.html",
+            policy_text = entry.policy_text if entry else "No entries in database yet.",
+            fragment_id = entry.id          if entry else 0,
+            accuracy    = None,
+        )
+
+    @app.route("/check-answer", methods=["POST"])
+    def check_answer():
+        # Scores guess, loads the next random entry
+        from models import SyllabusEntry
+
+        entry_id = request.form.get("fragment_id", type=int)
+        user_t   = request.form.get("user_t", "")
+        user_c   = request.form.get("user_c", "")
+        user_e   = request.form.get("user_e", "")
+
+        entry   = SyllabusEntry.query.get(entry_id)
+        correct = 0
+
+        if entry:
+            if user_t == entry.tier_id:        correct += 1
+            if user_c == entry.compliance_id:  correct += 1
+            if user_e == entry.enforcement_id: correct += 1
+
+        accuracy = round((correct / 3) * 100)
+
+        next_entry = None
+        try:
+            count = SyllabusEntry.query.filter_by(status="verified").count()
+            if count > 0:
+                next_entry = SyllabusEntry.query.filter_by(status="verified") \
+                                                .offset(random.randint(0, count - 1)) \
+                                                .first()
+        except Exception:
+            pass
+
+        return render_template(
+            "training_game.html",
+            policy_text = next_entry.policy_text if next_entry else "No more entries.",
+            fragment_id = next_entry.id          if next_entry else 0,
+            accuracy    = accuracy,
+        )
+
+    @app.route("/admin")
+    def admin_page():
+        return render_template("admin.html")
+
+    @app.route("/login")
+    def login_page():
+        return render_template("login.html")
+
+
+# UTILITY
     @app.route("/api/health")
     def health():
         return jsonify({"status": "ok", "message": "Syllabus Decoder API is running."}), 200
- 
+
     @app.errorhandler(404)
     def not_found(e):
         return jsonify({"error": "Not found."}), 404
- 
+
     @app.errorhandler(500)
     def server_error(e):
         return jsonify({"error": "Internal server error."}), 500
 
-    #auto create database tables
+    # Auto-create any missing tables on first run
     with app.app_context():
         try:
             db.create_all()
         except Exception as ex:
-            print(f"Could not auto-create tables: {ex}")
-            print("Make sure MySQL is running and credentials in config.py are correct.")
- 
+            print(f"WARNING: Could not auto-create tables: {ex}")
+
     return app
 
-# HOME PAGE
-@app.route('/')
-def index():
-    return render_template('index.html')
 
-# STUDENT - DECODER PAGE
-@app.route('/decoder')
-def decoder_page():
-    # empty values initially so the boxes show '--'
-    return render_template('decoder.html', t_tier=None, c_level=None, e_level=None)
-
-# FACULTY - BUILDER PAGE
-@app.route('/builder')
-def builder_page():
-    # get questions from SQL to display them
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM builder_questions")
-    questions = cur.fetchall()
-    cur.close()
-    conn.close()
-    return render_template('buildsyllabus.html', questions=questions)
-
-# TRAINING GAME
-@app.route('/game')
-def game_page():
-    # get a random policy fragment for the quiz
-    return render_template('traininggame.html')
-
-# FACULTY - POLICY BUILDER
-@app.route('/build-policy', methods=['POST'])
-def build_policy():
-    data = request.json
-    # like: {"q1": "Minimal Intervention", "q2": "Detailed Logs"}
-    
-    philosophy = data.get('q1')
-    
-    # logic
-    if philosophy == "Minimal Intervention":
-        tier = "T0 - Prohibited"
-        compliance = "N/A"
-        generated_text = "The use of generative AI is strictly prohibited for all assignments."
-    else:
-        tier = "T3 - Bounded Use"
-        compliance = "C3 - Logs Required"
-        generated_text = "AI use is permitted for brainstorming. You must provide a log of all prompts."
-
-    # SQL save the newly built policy to database
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO policies (course_name, policy_text, tier_id, compliance_id) VALUES (%s, %s, %s, %s)",
-        ("Custom Course", generated_text, tier[:2], compliance[:2])
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify({
-        "status": "success",
-        "tier": tier,
-        "text": generated_text
-    })
-
-# ADMIN PAGE
-@app.route('/admin')
-def index():
-    return render_template('admin.html')
+# Entry point is python app.py
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True)
