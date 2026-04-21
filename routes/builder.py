@@ -50,9 +50,8 @@ def generate_policy():
     # Personalize the text with the course name if provided
     policy_text = template.replace("this course", course) if course else template
 
-    '''
     # Save to the database so admin can see all generated policies
-    new_policy = Policy(
+    new_policy = PolicyGenerated(
         course_name   = course,
         policy_text   = policy_text,
         tier_id       = tier,
@@ -60,7 +59,6 @@ def generate_policy():
     )
     db.session.add(new_policy)
     db.session.commit()
-    '''
 
     return jsonify({
         "policy_text":    policy_text,
