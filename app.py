@@ -81,7 +81,7 @@ def create_app(env: str = None) -> Flask:
     def submit_policy():
         #Passes form answers to the builder route logic and renders the result
         from routes.builder import TIER_MAP
-        from models import BuilderQuestion, Policy
+        from models import BuilderQuestion, PolicyGenerated
 
         philosophy  = request.form.get("philosophy", "").strip()
         course_name = request.form.get("course_name", "this course").strip()
@@ -94,7 +94,7 @@ def create_app(env: str = None) -> Flask:
         tier, compliance, enforcement, template = TIER_MAP[philosophy]
         policy_text = template.replace("this course", course_name) if course_name else template
 
-        new_policy = Policy(
+        new_policy = PolicyGenerated(
             course_name   = course_name,
             policy_text   = policy_text,
             tier_id       = tier,
