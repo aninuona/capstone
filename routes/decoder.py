@@ -1,46 +1,45 @@
 from flask import Blueprint, jsonify, request
-from models import db, Policy
 
 decoder_bp = Blueprint("decoder", __name__)
 
+# TODO: replace keyword-based method with NLP/LLM
 
 def classify_policy(text: str) -> dict:
-    # a Core classification logic, reads the syllabus text and returns tier codes
-    # TODO replace these keyword checks with a proper ML model or Claude API call
+    # Keyword-based classification, checks for the most specific match first
     text_lower = text.lower()
 
-    # b T-Tier: how much AI use is allowed
-    if any(word in text_lower for word in ["prohibited", "not permitted", "strictly forbidden", "no ai"]):
+    # T-Tier: how permissive the policy is toward AI use
+    if any(w in text_lower for w in ["prohibited", "not permitted", "strictly forbidden", "no use of ai", "no ai", "ban"]):
         t_tier = "T0"
-    elif any(word in text_lower for word in ["some exceptions", "limited cases"]):
+    elif any(w in text_lower for w in ["strongly discouraged", "avoid", "refrain", "prefer you not"]):
         t_tier = "T1"
-    elif any(word in text_lower for word in ["ask permission", "prior approval", "instructor approval"]):
+    elif any(w in text_lower for w in ["prior approval", "ask permission", "instructor approval", "permission before"]):
         t_tier = "T2"
-    elif any(word in text_lower for word in ["bounded", "brainstorm", "outline only", "limited use"]):
+    elif any(w in text_lower for w in ["brainstorm", "outline only", "limited use", "specific tasks only", "bounded"]):
         t_tier = "T3"
-    elif any(word in text_lower for word in ["with documentation", "disclose", "citation required"]):
+    elif any(w in text_lower for w in ["with documentation", "cite ai", "citation required", "must cite", "document your use"]):
         t_tier = "T4"
-    elif any(word in text_lower for word in ["encouraged", "open use", "freely"]):
+    elif any(w in text_lower for w in ["encouraged", "welcome to use", "open use", "freely permitted"]):
         t_tier = "T5"
     else:
         t_tier = "T2"
 
-    # c C-Level: what disclosure/compliance is required
-    if any(word in text_lower for word in ["log", "step-by-step", "full transcript"]):
+    # C-Level: what disclosure or logging is required
+    if any(w in text_lower for w in ["full log", "step-by-step", "transcript", "every prompt"]):
         c_level = "C3"
-    elif any(word in text_lower for word in ["describe how", "explain your use"]):
+    elif any(w in text_lower for w in ["describe how", "explain your use", "how you used", "what you used it for"]):
         c_level = "C2"
-    elif any(word in text_lower for word in ["note if", "mention if", "indicate if"]):
+    elif any(w in text_lower for w in ["note if", "mention if", "indicate if", "acknowledge", "disclose"]):
         c_level = "C1"
     else:
         c_level = "C0"
 
-    # d E-Level: what the penalty is for violations
-    if any(word in text_lower for word in ["expulsion", "automatic failure", "academic dismissal"]):
+    # E-Level: severity of consequences for violating the policy
+    if any(w in text_lower for w in ["expulsion", "automatic failure", "automatic zero", "dismissed", "academic dismissal"]):
         e_level = "E3"
-    elif any(word in text_lower for word in ["will result in", "penalty", "grade reduction", "zero"]):
+    elif any(w in text_lower for w in ["will result in", "grade reduction", "fail the assignment", "zero on", "penalty", "violation"]):
         e_level = "E2"
-    elif any(word in text_lower for word in ["may result", "could affect"]):
+    elif any(w in text_lower for w in ["may result", "could affect", "at risk", "possible consequences"]):
         e_level = "E1"
     else:
         e_level = "E0"
@@ -50,7 +49,7 @@ def classify_policy(text: str) -> dict:
 
 @decoder_bp.route("/classify", methods=["POST"])
 def classify():
-    # e API endpoint that accepts syllabus text and returns classification JSON
+    # Accepts raw syllabus text and returns the three classification codes
     data = request.get_json()
     text = data.get("text", "").strip()
 
