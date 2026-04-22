@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Syllabus Decoder | Admin Console</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="/static/style.css">
   <style>
     .admin-layout {
       max-width: 1100px;
@@ -102,7 +102,7 @@
       gap: var(--space-4);
     }
 
-    /* e Edit modal overlay */
+    /* e Edit overlay */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -185,7 +185,7 @@
       </div>
     </div>
 
-    <!-- Repository table -->
+    <!-- table -->
     <section class="fade-up fade-up--1">
       <div class="table-controls">
         <h2>Search Repository</h2>
@@ -220,7 +220,7 @@
       </div>
     </section>
 
-    <!-- Upload / Add Entry -->
+    <!-- Upload or Add Entry -->
     <section class="fade-up fade-up--2">
       <div class="upload-grid">
         <div class="section-header">
@@ -284,7 +284,7 @@
 
   </div>
 
-  <!-- Edit modal -->
+  <!-- Editing -->
   <div class="modal-overlay" id="edit-modal">
     <div class="modal">
       <div class="modal__header">
@@ -322,11 +322,11 @@
     </div>
   </div>
 
-  <!-- Feedback toast -->
+  <!-- Feedback -->
   <div id="feedback-banner" class="alert"></div>
 
   <script>
-    // a Check session on load, redirect to login if not admin
+    // Check session on load, redirect to login if not admin
     async function checkAuth() {
       try {
         const res  = await fetch('/api/auth/me', { credentials: 'include' });
@@ -341,13 +341,13 @@
       }
     }
 
-    // b Logout button
+    // Logout button
     document.getElementById('logout-btn').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/login';
     });
 
-    // c Show a toast message at the bottom right
+    // Show a message at the bottom right
     function showFeedback(message, type = 'success') {
       const banner = document.getElementById('feedback-banner');
       banner.className = `alert alert--${type} visible`;
@@ -355,7 +355,7 @@
       setTimeout(() => banner.classList.remove('visible'), 3500);
     }
 
-    // d Load all repository entries and render the table
+    // Load all repository entries and render the table
     let allEntries = [];
 
     async function loadEntries() {
@@ -409,7 +409,7 @@
       return `<span class="status status--pending">Pending</span>`;
     }
 
-    // e Filter table by institution name as user types
+    // Filter table by institution name as user types
     document.getElementById('filter-input').addEventListener('input', function() {
       const q       = this.value.toLowerCase();
       const filtered = allEntries.filter(e =>
@@ -419,7 +419,7 @@
       renderTable(filtered);
     });
 
-    // f Upload new entry form submit
+    // Upload new entry form submit
     document.getElementById('upload-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const form = new FormData(this);
@@ -442,7 +442,7 @@
       }
     });
 
-    // g Open edit modal populated with current values
+    // Open editor which is populated with current values
     function openEdit(id) {
       const entry = allEntries.find(e => e.id === id);
       if (!entry) return;
@@ -462,7 +462,7 @@
       document.getElementById('edit-modal').classList.remove('open');
     });
 
-    // h Save edits
+    // Save edits
     document.getElementById('save-edit-btn').addEventListener('click', async () => {
       const id   = document.getElementById('edit-id').value;
       const body = {
@@ -491,7 +491,7 @@
       }
     });
 
-    // i Flag or unflag an entry
+    // Flag or unflag an entry
     async function flagEntry(id, currentStatus) {
       const newStatus = currentStatus === 'flagged' ? 'pending' : 'flagged';
       try {
@@ -509,7 +509,7 @@
       }
     }
 
-    // j Export table as CSV
+    // Export table as CSV
     document.getElementById('export-btn').addEventListener('click', () => {
       if (!allEntries.length) { showFeedback('No data to export.', 'warning'); return; }
       const headers = ['ID','Institution','Department','T-Tier','C-Level','E-Level','Status'];
@@ -528,7 +528,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // k Init
+    // Init
     checkAuth().then(loadEntries);
   </script>
 
