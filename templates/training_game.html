@@ -10,6 +10,17 @@
   <nav class="main-nav">
     <div class="logo"><a href="/">Syllabus Decoder</a></div>
     <div class="score-display">Accuracy: <span class="highlight">{{ accuracy or '0' }}%</span></div>
+    <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <div class="nav-links" id="nav-menu">
+      <a href="/decoder">Decoder</a>
+      <a href="/buildsyllabus">Policy Builder</a>
+      <a href="/traininggame">Training Game</a>
+      <a href="/admin">Admin</a>
+    </div>
   </nav>
 
   <main class="game-container">
