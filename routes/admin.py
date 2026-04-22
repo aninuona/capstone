@@ -31,7 +31,7 @@ def list_entries():
     denied = require_admin()
     if denied: return denied
 
-    entries = SyllabusEntry.query.order_by(SyllabusEntry.created_at.desc()).all()
+    entries = SyllabusEntry.query.order_by(SyllabusEntry.id.desc()).all()
     return jsonify([e.to_dict() for e in entries]), 200
 
 
@@ -44,12 +44,12 @@ def add_entry():
     data  = request.get_json()
     entry = SyllabusEntry(
         institution    = data.get("institution", "").strip(),
-        department     = data.get("department", "").strip(),
+        discipline     = data.get("department", "").strip(),
         policy_text    = data.get("policy_text", "").strip(),
         tier_id        = data.get("tier_id", "T2"),
         compliance_id  = data.get("compliance_id", "C0"),
         enforcement_id = data.get("enforcement_id", "E0"),
-        status         = "pending",
+        status         = "verified",
     )
     db.session.add(entry)
     db.session.commit()
@@ -68,7 +68,7 @@ def update_entry(entry_id):
 
     data = request.get_json()
     entry.institution    = data.get("institution",    entry.institution)
-    entry.department     = data.get("department",     entry.department)
+    entry.discipline     = data.get("department",     entry.discipline)
     entry.policy_text    = data.get("policy_text",    entry.policy_text)
     entry.tier_id        = data.get("tier_id",        entry.tier_id)
     entry.compliance_id  = data.get("compliance_id",  entry.compliance_id)
