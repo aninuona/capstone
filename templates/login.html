@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Syllabus Decoder | Admin Login</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="/static/style.css">
   <style>
     .login-wrap {
       min-height: 100vh;
@@ -55,7 +55,9 @@
 <body>
 
 <div class="login-wrap">
-  <div class="login-card fade-up">
+  <div class="login-card fade-up" style="position: relative;">
+
+    <a href="/" style="position: absolute; top: var(--space-4); right: var(--space-4); font-size: 1.5rem; color: var(--ink-3); text-decoration: none;">✕</a>
 
     <span class="login-card__brand">Syllabus Decoder</span>
     <h1>Admin <span class="accent" style="color:var(--blue)">Access</span></h1>
