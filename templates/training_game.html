@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Syllabus Decoder | Training Game</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
   <nav class="main-nav">
-    <div class="logo"><a href="index.html">Syllabus Decoder</a></div>
+    <div class="logo"><a href="/">Syllabus Decoder</a></div>
     <div class="score-display">Accuracy: <span class="highlight">{{ accuracy or '0' }}%</span></div>
   </nav>
 
@@ -44,9 +44,9 @@
         </div>
 
         <div class="input-group">
-            <label>Predict C-Level</label>
+            <label>Predict E-Level</label>
             <select name="user_e">
-                <option selected disabled>Select Compliance</option>
+                <option selected disabled>Select Enforcement</option>
                 <option value="E0">E0 - None</option>
                 <option value="E1">E1 - No explicity penalty</option>
                 <option value="E2">E2 - Explicit penalty</option>
