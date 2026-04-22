@@ -1,7 +1,7 @@
 import os
 import sys
 import random
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect, session
 from flask_cors import CORS
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -20,6 +20,8 @@ def create_app(env: str = None) -> Flask:
     CORS(app, supports_credentials=True, origins=[
         "http://localhost:5000",
         "http://127.0.0.1:5000",
+        "http://localhost:5001",
+        "http://127.0.0.1:5001",
         "http://localhost:5173",
     ])
 
@@ -173,6 +175,8 @@ def create_app(env: str = None) -> Flask:
 
     @app.route("/admin")
     def admin_page():
+        if session.get("role") != "admin":
+            return redirect("/login")
         return render_template("admin.html")
 
     @app.route("/login")
