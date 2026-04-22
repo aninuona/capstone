@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, Policy
+from models import db, PolicyGenerated
 
 builder_bp = Blueprint("builder", __name__)
 
