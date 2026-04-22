@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session
-from models import db, User, Policy, PolicyFragment, BuilderQuestion, SyllabusEntry
+from models import db, User, PolicyGenerated, SyllabusEntry, BuilderQuestion
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -18,10 +18,10 @@ def stats():
     if denied: return denied
 
     return jsonify({
-        "entries":   PolicyEntry.query.count(),
+        "entries":   SyllabusEntry.query.count(),
         "users":     User.query.count(),
         "policies":  PolicyGenerated.query.count(),
-        "fragments": PolicyFragment.query.count(),
+        "fragments": SyllabusEntry.query.count(),
     }), 200
 
 
@@ -31,7 +31,7 @@ def list_entries():
     denied = require_admin()
     if denied: return denied
 
-    entries = PolicyEntry.query.order_by(PolicyEntry.created_at.desc()).all()
+    entries = SyllabusEntry.query.order_by(SyllabusEntry.created_at.desc()).all()
     return jsonify([e.to_dict() for e in entries]), 200
 
 
@@ -42,7 +42,7 @@ def add_entry():
     if denied: return denied
 
     data  = request.get_json()
-    entry = PolicyEntry(
+    entry = SyllabusEntry(
         institution    = data.get("institution", "").strip(),
         department     = data.get("department", "").strip(),
         policy_text    = data.get("policy_text", "").strip(),
@@ -62,7 +62,7 @@ def update_entry(entry_id):
     denied = require_admin()
     if denied: return denied
 
-    entry = PolicyEntry.query.get(entry_id)
+    entry = SyllabusEntry.query.get(entry_id)
     if not entry:
         return jsonify({"error": "Entry not found."}), 404
 
@@ -84,7 +84,7 @@ def update_status(entry_id):
     denied = require_admin()
     if denied: return denied
 
-    entry = PolicyEntry.query.get(entry_id)
+    entry = SyllabusEntry.query.get(entry_id)
     if not entry:
         return jsonify({"error": "Entry not found."}), 404
 
