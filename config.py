@@ -4,7 +4,6 @@ class DevelopmentConfig:
     # Secret key for session security, CHANGE BEFORE FINAL
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-before-deploying")
 
-    #
     SQLALCHEMY_DATABASE_URI = "sqlite:///syllabus.db"
 
     # Disable modification tracking to save memory
